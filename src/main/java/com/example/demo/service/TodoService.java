@@ -29,6 +29,7 @@ public class TodoService {
 		return savedEntity.getTitle();
 	}
 
+//	생성
 	public List<TodoEntity> create(final TodoEntity entity){
 		validate(entity);
 		
@@ -39,6 +40,77 @@ public class TodoService {
 		return repository.findByUserId(entity.getUserId());
 	}
 
+
+//	검색
+	public List<TodoEntity> retrieve(final String userId){
+		return repository.findByUserId(userId);
+	}
+	
+//	수정 람다식
+	public List<TodoEntity> updateHigh(final TodoEntity entity){
+
+//		(1). 저장할 엔티티가 유효한지 확인
+		validate(entity);
+		
+//		(2). 넘겨받은 엔티티의 id를 이용해 TodoEntitiy 가져옴
+		final Optional<TodoEntity> original = repository.findById(entity.getId());
+		
+//		(3). 반환된 TodoEntitiy 가 존재하면 새 entitiy 값으로 덮어 씌움
+		original.ifPresent(todo->{
+			todo.setTitle(entity.getTitle());
+			todo.setDone(entity.isDone());
+			
+//		(4). DB에 새 값 저장
+			repository.save(todo);
+		});
+		
+//		(5). 사용자의 모든 Todo 리스트 반환
+		return retrieve(entity.getUserId());
+	}
+	
+//	수정
+	public List<TodoEntity> update(final TodoEntity entity){
+
+//		(1). 저장할 엔티티가 유효한지 확인
+		validate(entity);
+		
+//		(2). 넘겨받은 엔티티의 id를 이용해 TodoEntitiy 가져옴
+		final Optional<TodoEntity> original = repository.findById(entity.getId());
+		
+//		(3). 반환된 TodoEntitiy 가 존재하면 새 entitiy 값으로 덮어 씌움
+		if(original.isPresent()) {
+			final TodoEntity todo = original.get();
+			todo.setTitle(entity.getTitle());
+			todo.setDone(entity.isDone());
+			
+//		(4). DB에 새 값 저장
+			repository.save(todo);
+		}
+		
+//		(5). 사용자의 모든 Todo 리스트 반환
+		return retrieve(entity.getUserId());
+	}
+	
+//	삭제
+	public List<TodoEntity> delete(final TodoEntity entity){
+//		(1). 검증
+		validate(entity);
+		
+		try {
+//			(2). 엔티티 삭제
+			repository.delete(entity);
+		}catch(Exception e) {
+//			(3). 오류 발생시 id와 exception 로깅
+			log.error("error deleting entity ", entity.getId(), e);
+//			(4). 컨트롤러에게 exception 리턴
+			throw new RuntimeException("error deleting entity "+entity.getId());
+		}
+//		(5). 새 todo 리스트 반환
+		return retrieve(entity.getUserId());
+	}
+
+	
+//	검증
 	private void validate(final TodoEntity entity) {
 		if(entity==null) {
 			log.warn("Entity cannot be null");
@@ -50,7 +122,6 @@ public class TodoService {
 			throw new RuntimeException("Unknown user");
 		}
 	}
-	
 	
 	
 	
